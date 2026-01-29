@@ -22,13 +22,12 @@ from . import config
 logger = logging.getLogger(__name__)
 
 
-def _build_filename(datum: dict, frame_type: str, file_extension: str) -> str:
+def _build_filename(datum: dict, file_extension: str) -> str:
     """
     Builds a filename from metadata properties.
 
     Args:
         datum: Metadata dictionary
-        frame_type: Type of calibration frame (BIAS, DARK, FLAT)
         file_extension: File extension to append
 
     Returns:
@@ -37,7 +36,7 @@ def _build_filename(datum: dict, frame_type: str, file_extension: str) -> str:
     output_filename = f"{camelCase(datum['type'])}"
 
     # Add metadata to filename
-    for key in config.FILENAME_PROPERTIES[frame_type]:
+    for key in config.FILENAME_PROPERTIES[datum["type"]]:
         if key in datum and datum[key] is not None:
             p = denormalize_header(key)
             if p is None:
@@ -50,7 +49,7 @@ def _build_filename(datum: dict, frame_type: str, file_extension: str) -> str:
 
 def _build_bias_path(datum: dict, dest_dir: str, filename: str) -> str:
     """
-    Builds destination path for BIAS frames.
+    Builds destination path for MASTER BIAS frames.
 
     Args:
         datum: Metadata dictionary
@@ -60,12 +59,12 @@ def _build_bias_path(datum: dict, dest_dir: str, filename: str) -> str:
     Returns:
         Full destination path
     """
-    return os.path.join(dest_dir, "BIAS", datum[config.KEYWORD_CAMERA], filename)
+    return os.path.join(dest_dir, datum["type"], datum[config.KEYWORD_CAMERA], filename)
 
 
 def _build_dark_path(datum: dict, dest_dir: str, filename: str) -> str:
     """
-    Builds destination path for DARK frames.
+    Builds destination path for MASTER DARK frames.
 
     Args:
         datum: Metadata dictionary
@@ -75,12 +74,12 @@ def _build_dark_path(datum: dict, dest_dir: str, filename: str) -> str:
     Returns:
         Full destination path
     """
-    return os.path.join(dest_dir, "DARK", datum[config.KEYWORD_CAMERA], filename)
+    return os.path.join(dest_dir, datum["type"], datum[config.KEYWORD_CAMERA], filename)
 
 
 def _build_flat_path(datum: dict, dest_dir: str, filename: str) -> str:
     """
-    Builds destination path for FLAT frames.
+    Builds destination path for MASTER FLAT frames.
 
     Args:
         datum: Metadata dictionary
@@ -92,7 +91,7 @@ def _build_flat_path(datum: dict, dest_dir: str, filename: str) -> str:
     """
     date_subdir = f"DATE_{datum[config.KEYWORD_DATE]}"
 
-    dest_path_parts = [dest_dir, "FLAT", datum[config.KEYWORD_CAMERA]]
+    dest_path_parts = [dest_dir, datum["type"], datum[config.KEYWORD_CAMERA]]
     if (
         config.KEYWORD_OPTIC in datum
         and datum[config.KEYWORD_OPTIC] is not None
@@ -106,7 +105,7 @@ def _build_flat_path(datum: dict, dest_dir: str, filename: str) -> str:
 
 
 def build_destination_path(
-    source_file: str, dest_dir: str, datum: dict, frame_type: str, debug: bool = False
+    source_file: str, dest_dir: str, datum: dict, debug: bool = False
 ) -> str:
     """
     Builds the destination path for a calibration frame based on its type and metadata.
@@ -115,7 +114,6 @@ def build_destination_path(
         source_file: Source file path
         dest_dir: Destination base directory
         datum: Metadata dictionary for the file
-        frame_type: Type of calibration frame (BIAS, DARK, FLAT)
         debug: Print debug information
 
     Returns:
@@ -124,8 +122,10 @@ def build_destination_path(
     Raises:
         ValueError: If required metadata is missing for the given frame type
     """
+    frame_type = datum["type"]
+
     # Validate frame type
-    if frame_type not in ["BIAS", "DARK", "FLAT"]:
+    if frame_type not in config.REQUIRED_PROPERTIES:
         raise ValueError(f"Unknown frame type: {frame_type}")
 
     # Get file extension
@@ -138,14 +138,14 @@ def build_destination_path(
             raise ValueError(f"Missing required '{prop}' metadata for {source_file}")
 
     # Build filename
-    filename = _build_filename(datum, frame_type, file_extension)
+    filename = _build_filename(datum, file_extension)
 
     # Build path based on type
-    if frame_type == "BIAS":
+    if frame_type == "MASTER BIAS":
         dest_path = _build_bias_path(datum, dest_dir, filename)
-    elif frame_type == "DARK":
+    elif frame_type == "MASTER DARK":
         dest_path = _build_dark_path(datum, dest_dir, filename)
-    elif frame_type == "FLAT":
+    elif frame_type == "MASTER FLAT":
         dest_path = _build_flat_path(datum, dest_dir, filename)
 
     return os.path.normpath(dest_path)
@@ -179,7 +179,7 @@ def _print_summary(stats: dict, dryrun: bool):
     logger.info("=" * 60)
     logger.info("SUMMARY")
     logger.info("=" * 60)
-    for frame_type in ["BIAS", "DARK", "FLAT"]:
+    for frame_type in ["MASTER BIAS", "MASTER DARK", "MASTER FLAT"]:
         logger.info(f"{frame_type}:")
         logger.info(f"  Scanned: {stats[frame_type]['scanned']}")
         logger.info(f"  Copied:  {stats[frame_type]['copied']}")
@@ -232,16 +232,14 @@ def copy_calibration_frames(
 
     # Track statistics
     stats = {
-        "BIAS": {"scanned": 0, "copied": 0, "skipped": 0},
-        "DARK": {"scanned": 0, "copied": 0, "skipped": 0},
-        "FLAT": {"scanned": 0, "copied": 0, "skipped": 0},
+        "MASTER BIAS": {"scanned": 0, "copied": 0, "skipped": 0},
+        "MASTER DARK": {"scanned": 0, "copied": 0, "skipped": 0},
+        "MASTER FLAT": {"scanned": 0, "copied": 0, "skipped": 0},
     }
 
     # Process each calibration type
-    for frame_type in ["BIAS", "DARK", "FLAT"]:
-        filter_type = f"MASTER {frame_type}"
-
-        logger.debug(f"Scanning for {filter_type} frames...")
+    for frame_type in ["MASTER BIAS", "MASTER DARK", "MASTER FLAT"]:
+        logger.debug(f"Scanning for {frame_type} frames...")
 
         # Get all calibration frames of this type
         metadata = get_filtered_metadata(
@@ -249,14 +247,14 @@ def copy_calibration_frames(
             patterns=[r".*\.xisf$", r".*\.fits$"],
             recursive=True,
             required_properties=[],
-            filters={"type": filter_type},
+            filters={"type": frame_type},
             debug=debug,
             profileFromPath=False,
         )
 
         stats[frame_type]["scanned"] = len(metadata)
 
-        logger.debug(f"Found {len(metadata)} {filter_type} frames")
+        logger.debug(f"Found {len(metadata)} {frame_type} frames")
 
         # Build copy list with destination paths
         copy_list = []
@@ -266,7 +264,6 @@ def copy_calibration_frames(
                     source_file=source_file,
                     dest_dir=dest_dir,
                     datum=datum,
-                    frame_type=frame_type,
                     debug=debug,
                 )
                 copy_list.append((source_file, dest_file))

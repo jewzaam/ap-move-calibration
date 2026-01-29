@@ -50,7 +50,7 @@ make uninstall
 
 1. Scans `source_dir` recursively for master calibration files (`.xisf` and `.fits` formats)
 2. Reads FITS/XISF headers to extract metadata (type, camera, optic, filter, date, gain, offset, temp, exposure, etc.)
-3. Organizes files by frame type into `dest_dir/{BIAS,DARK,FLAT}/`
+3. Organizes files by frame type into `dest_dir/{"MASTER BIAS","MASTER DARK","MASTER FLAT"}/`
 4. Within each type directory, organizes by optical configuration (camera, optic, filter)
 5. Reports files copied and any errors encountered
 6. Overwrites existing files by default (use `--no-overwrite` to fail on collisions)
@@ -61,13 +61,13 @@ The tool organizes calibration frames into a library structure optimized for qui
 
 ```
 {dest_dir}/
-├── BIAS/
+├── MASTER BIAS/
 │   └── {camera}/
 │       └── {filename_with_metadata}.xisf
-├── DARK/
+├── MASTER DARK/
 │   └── {camera}/
 │       └── {filename_with_metadata}.xisf
-└── FLAT/
+└── MASTER FLAT/
     └── {camera}/
         └── [{optic}/]
             └── DATE_{CCYY-MM-DD}/
@@ -77,20 +77,20 @@ The tool organizes calibration frames into a library structure optimized for qui
 ### Frame Type Organization
 
 **BIAS Frames**: Organized by camera
-- Path: `BIAS/{camera}/`
+- Path: `MASTER BIAS/{camera}/`
 - Filename includes: camera, gain, offset, temp, readout mode, etc.
-- Example: `BIAS/{camera}/masterBias_GAIN_100_OFFSET_10_TEMP_-10.xisf`
+- Example: `MASTER BIAS/{camera}/masterBias_GAIN_100_OFFSET_10_TEMP_-10.xisf`
 
 **DARK Frames**: Organized by camera
-- Path: `DARK/{camera}/`
+- Path: `MASTER DARK/{camera}/`
 - Filename includes: camera, exposure time, gain, offset, temp, readout mode, etc.
-- Example: `DARK/{camera}/masterDark_EXPTIME_300_GAIN_100_OFFSET_10_TEMP_-10.xisf`
+- Example: `MASTER DARK/{camera}/masterDark_EXPTIME_300_GAIN_100_OFFSET_10_TEMP_-10.xisf`
 
 **FLAT Frames**: Organized by camera, optic (if present), and date
-- Path: `FLAT/{camera}/[{optic}/]DATE_{CCYY-MM-DD}/`
+- Path: `MASTER FLAT/{camera}/[{optic}/]DATE_{CCYY-MM-DD}/`
 - Filename includes: filter, gain, offset, temp, focal length, readout mode (but NOT date)
 - Date is encoded in directory structure instead of filename
-- Example: `FLAT/{camera}/{optic}/DATE_2026-01-27/masterFlat_FILTER_L_GAIN_100_OFFSET_10.xisf`
+- Example: `MASTER FLAT/{camera}/{optic}/DATE_2026-01-27/masterFlat_FILTER_L_GAIN_100_OFFSET_10.xisf`
 
 This organization allows:
 - Quick lookup of calibration frames by camera and optical configuration
