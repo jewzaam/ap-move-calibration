@@ -24,13 +24,13 @@ KEYWORD_OPTIC = "optic"  # From TELESCOP or other optic identifier
 # Required metadata properties for each frame type
 # These are used to validate that files can be properly organized
 REQUIRED_PROPERTIES = {
-    "BIAS": [
+    "MASTER BIAS": [
         KEYWORD_CAMERA,  # Required for directory structure
     ],
-    "DARK": [
+    "MASTER DARK": [
         KEYWORD_CAMERA,  # Required for directory structure
     ],
-    "FLAT": [
+    "MASTER FLAT": [
         KEYWORD_CAMERA,  # Required for directory structure
         KEYWORD_DATE,  # Required for date subdirectory
     ],
@@ -39,20 +39,20 @@ REQUIRED_PROPERTIES = {
 # Metadata properties included in filenames for each frame type
 # Order matters - properties appear in filename in this order
 FILENAME_PROPERTIES = {
-    "BIAS": [
+    "MASTER BIAS": [
         KEYWORD_GAIN,
         KEYWORD_OFFSET,
         KEYWORD_SETTEMP,
         KEYWORD_READOUTMODE,
     ],
-    "DARK": [
+    "MASTER DARK": [
         KEYWORD_EXPOSURESECONDS,  # Must be first for dark frames
         KEYWORD_GAIN,
         KEYWORD_OFFSET,
         KEYWORD_SETTEMP,
         KEYWORD_READOUTMODE,
     ],
-    "FLAT": [
+    "MASTER FLAT": [
         KEYWORD_FILTER,
         KEYWORD_GAIN,
         KEYWORD_OFFSET,
@@ -65,7 +65,7 @@ FILENAME_PROPERTIES = {
 # Optional metadata properties
 # These are used if present but do not cause failures if missing
 OPTIONAL_PROPERTIES = {
-    "FLAT": [
+    "MASTER FLAT": [
         KEYWORD_OPTIC,  # Optional optic subdirectory for flats
     ],
 }

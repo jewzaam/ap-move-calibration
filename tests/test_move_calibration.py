@@ -34,11 +34,10 @@ def test_build_destination_path_bias():
         source_file="test.xisf",
         dest_dir="/dest",
         datum=datum,
-        frame_type="BIAS",
     )
 
     # Check path structure
-    assert "BIAS" in dest_path
+    assert "MASTER BIAS" in dest_path
     assert "DWARFIII" in dest_path
     assert "masterBias" in dest_path
     assert "GAIN_100" in dest_path
@@ -61,11 +60,10 @@ def test_build_destination_path_dark():
         source_file="test.fits",
         dest_dir="/dest",
         datum=datum,
-        frame_type="DARK",
     )
 
     # Check path structure
-    assert "DARK" in dest_path
+    assert "MASTER DARK" in dest_path
     assert "DWARFIII" in dest_path
     assert "masterDark" in dest_path
     # Check for exposure time in filename (denormalize_header may return different values)
@@ -90,11 +88,10 @@ def test_build_destination_path_flat():
         source_file="test.xisf",
         dest_dir="/dest",
         datum=datum,
-        frame_type="FLAT",
     )
 
     # Check path structure
-    assert "FLAT" in dest_path
+    assert "MASTER FLAT" in dest_path
     assert "DWARFIII" in dest_path
     assert "REDCAT51" in dest_path
     assert "DATE_2026-01-27" in dest_path
@@ -119,11 +116,10 @@ def test_build_destination_path_flat_no_optic():
         source_file="test.xisf",
         dest_dir="/dest",
         datum=datum,
-        frame_type="FLAT",
     )
 
     # Check path structure - optic should not be in path
-    assert "FLAT" in dest_path
+    assert "MASTER FLAT" in dest_path
     assert "DWARFIII" in dest_path
     assert "DATE_2026-01-27" in dest_path
     # Ensure path is camera -> DATE (no optic in between)
@@ -154,7 +150,6 @@ def test_build_destination_path_missing_camera():
             source_file="test.xisf",
             dest_dir="/dest",
             datum=datum,
-            frame_type="BIAS",
         )
 
 
@@ -171,7 +166,6 @@ def test_build_destination_path_missing_date_for_flat():
             source_file="test.xisf",
             dest_dir="/dest",
             datum=datum,
-            frame_type="FLAT",
         )
 
 
@@ -187,7 +181,6 @@ def test_build_destination_path_unknown_type():
             source_file="test.xisf",
             dest_dir="/dest",
             datum=datum,
-            frame_type="UNKNOWN",
         )
 
 
@@ -205,7 +198,6 @@ def test_build_destination_path_dark_exposure_first():
         source_file="test.xisf",
         dest_dir="/dest",
         datum=datum,
-        frame_type="DARK",
     )
 
     # Extract filename from path
@@ -233,7 +225,6 @@ def test_build_destination_path_missing_optional_properties():
         source_file="test.xisf",
         dest_dir="/dest",
         datum=datum,
-        frame_type="BIAS",
     )
 
     # Should have gain but not have offset
@@ -256,7 +247,6 @@ def test_build_destination_path_file_extension_preservation():
         source_file="test.xisf",
         dest_dir="/dest",
         datum=datum,
-        frame_type="BIAS",
     )
     assert dest_path_xisf.endswith(".xisf")
 
@@ -265,7 +255,6 @@ def test_build_destination_path_file_extension_preservation():
         source_file="test.fits",
         dest_dir="/dest",
         datum=datum,
-        frame_type="BIAS",
     )
     assert dest_path_fits.endswith(".fits")
 
@@ -274,7 +263,6 @@ def test_build_destination_path_file_extension_preservation():
         source_file="test.FIT",
         dest_dir="/dest",
         datum=datum,
-        frame_type="BIAS",
     )
     assert dest_path_fit.endswith(".FIT")
 
@@ -293,7 +281,6 @@ def test_build_destination_path_flat_empty_optic():
         source_file="test.xisf",
         dest_dir="/dest",
         datum=datum,
-        frame_type="FLAT",
     )
 
     # Should not have optic in path
@@ -314,7 +301,7 @@ def test_build_destination_path_flat_empty_optic():
 
 def test_build_destination_path_directory_structure():
     """Test that directory structure is correct for each frame type."""
-    # BIAS: dest_dir/BIAS/camera/filename
+    # BIAS: dest_dir/MASTER BIAS/camera/filename
     bias_datum = {
         "type": "MASTER BIAS",
         "camera": "DWARFIII",
@@ -324,19 +311,18 @@ def test_build_destination_path_directory_structure():
         source_file="test.xisf",
         dest_dir="/dest",
         datum=bias_datum,
-        frame_type="BIAS",
     )
     bias_parts = bias_path.split(os.sep)
     assert "dest" in bias_parts
-    assert "BIAS" in bias_parts
+    assert "MASTER BIAS" in bias_parts
     assert "DWARFIII" in bias_parts
-    # Verify order: dest -> BIAS -> camera -> filename
+    # Verify order: dest -> MASTER BIAS -> camera -> filename
     dest_idx = next(i for i, p in enumerate(bias_parts) if "dest" in p)
-    bias_idx = next(i for i, p in enumerate(bias_parts) if p == "BIAS")
+    bias_idx = next(i for i, p in enumerate(bias_parts) if p == "MASTER BIAS")
     camera_idx = next(i for i, p in enumerate(bias_parts) if "DWARFIII" in p)
     assert dest_idx < bias_idx < camera_idx
 
-    # DARK: dest_dir/DARK/camera/filename
+    # DARK: dest_dir/MASTER DARK/camera/filename
     dark_datum = {
         "type": "MASTER DARK",
         "camera": "DWARFIII",
@@ -346,13 +332,12 @@ def test_build_destination_path_directory_structure():
         source_file="test.xisf",
         dest_dir="/dest",
         datum=dark_datum,
-        frame_type="DARK",
     )
     dark_parts = dark_path.split(os.sep)
-    assert "DARK" in dark_parts
+    assert "MASTER DARK" in dark_parts
     assert "DWARFIII" in dark_parts
 
-    # FLAT: dest_dir/FLAT/camera/DATE_date/filename
+    # FLAT: dest_dir/MASTER FLAT/camera/DATE_date/filename
     flat_datum = {
         "type": "MASTER FLAT",
         "camera": "DWARFIII",
@@ -363,15 +348,14 @@ def test_build_destination_path_directory_structure():
         source_file="test.xisf",
         dest_dir="/dest",
         datum=flat_datum,
-        frame_type="FLAT",
     )
     flat_parts = flat_path.split(os.sep)
-    assert "FLAT" in flat_parts
+    assert "MASTER FLAT" in flat_parts
     assert "DWARFIII" in flat_parts
     assert any("DATE_" in p for p in flat_parts)
-    # Verify order: dest -> FLAT -> camera -> DATE_xxx -> filename
+    # Verify order: dest -> MASTER FLAT -> camera -> DATE_xxx -> filename
     dest_idx = next(i for i, p in enumerate(flat_parts) if "dest" in p)
-    flat_idx = next(i for i, p in enumerate(flat_parts) if p == "FLAT")
+    flat_idx = next(i for i, p in enumerate(flat_parts) if p == "MASTER FLAT")
     camera_idx = next(i for i, p in enumerate(flat_parts) if "DWARFIII" in p)
     date_idx = next(i for i, p in enumerate(flat_parts) if "DATE_" in p)
     assert dest_idx < flat_idx < camera_idx < date_idx
@@ -391,13 +375,12 @@ def test_build_destination_path_flat_with_optic_structure():
         source_file="test.xisf",
         dest_dir="/dest",
         datum=datum,
-        frame_type="FLAT",
     )
 
-    # Verify order: dest -> FLAT -> camera -> optic -> DATE_xxx -> filename
+    # Verify order: dest -> MASTER FLAT -> camera -> optic -> DATE_xxx -> filename
     path_parts = dest_path.split(os.sep)
     dest_idx = next(i for i, p in enumerate(path_parts) if "dest" in p)
-    flat_idx = next(i for i, p in enumerate(path_parts) if p == "FLAT")
+    flat_idx = next(i for i, p in enumerate(path_parts) if p == "MASTER FLAT")
     camera_idx = next(i for i, p in enumerate(path_parts) if "DWARFIII" in p)
     optic_idx = next(i for i, p in enumerate(path_parts) if "REDCAT51" in p)
     date_idx = next(i for i, p in enumerate(path_parts) if "DATE_" in p)
@@ -416,7 +399,7 @@ def test_build_filename_bias():
         "settemp": -10,
     }
 
-    filename = _build_filename(datum, "BIAS", ".xisf")
+    filename = _build_filename(datum, ".xisf")
 
     assert filename.startswith("masterBias")
     assert "GAIN_100" in filename
@@ -432,7 +415,7 @@ def test_build_filename_dark():
         "gain": 100,
     }
 
-    filename = _build_filename(datum, "DARK", ".fits")
+    filename = _build_filename(datum, ".fits")
 
     assert filename.startswith("masterDark")
     assert "_300_" in filename
@@ -448,7 +431,7 @@ def test_build_filename_flat():
         "gain": 100,
     }
 
-    filename = _build_filename(datum, "FLAT", ".xisf")
+    filename = _build_filename(datum, ".xisf")
 
     assert filename.startswith("masterFlat")
     assert "FILTER_L" in filename
@@ -464,7 +447,7 @@ def test_build_filename_missing_optional():
         # offset is missing
     }
 
-    filename = _build_filename(datum, "BIAS", ".xisf")
+    filename = _build_filename(datum, ".xisf")
 
     assert "GAIN_100" in filename
     assert "OFFSET" not in filename
@@ -472,33 +455,38 @@ def test_build_filename_missing_optional():
 
 def test_build_bias_path():
     """Test BIAS path construction."""
-    datum = {"camera": "DWARFIII"}
+    datum = {"type": "MASTER BIAS", "camera": "DWARFIII"}
     path = _build_bias_path(datum, "/dest", "test.xisf")
 
     assert "/dest" in path or "\\dest" in path
-    assert "BIAS" in path
+    assert "MASTER BIAS" in path
     assert "DWARFIII" in path
     assert "test.xisf" in path
 
 
 def test_build_dark_path():
     """Test DARK path construction."""
-    datum = {"camera": "DWARFIII"}
+    datum = {"type": "MASTER DARK", "camera": "DWARFIII"}
     path = _build_dark_path(datum, "/dest", "test.xisf")
 
     assert "/dest" in path or "\\dest" in path
-    assert "DARK" in path
+    assert "MASTER DARK" in path
     assert "DWARFIII" in path
     assert "test.xisf" in path
 
 
 def test_build_flat_path_with_optic():
     """Test FLAT path construction with optic."""
-    datum = {"camera": "DWARFIII", "optic": "REDCAT51", "date": "2026-01-27"}
+    datum = {
+        "type": "MASTER FLAT",
+        "camera": "DWARFIII",
+        "optic": "REDCAT51",
+        "date": "2026-01-27",
+    }
     path = _build_flat_path(datum, "/dest", "test.xisf")
 
     assert "/dest" in path or "\\dest" in path
-    assert "FLAT" in path
+    assert "MASTER FLAT" in path
     assert "DWARFIII" in path
     assert "REDCAT51" in path
     assert "DATE_2026-01-27" in path
@@ -507,10 +495,10 @@ def test_build_flat_path_with_optic():
 
 def test_build_flat_path_without_optic():
     """Test FLAT path construction without optic."""
-    datum = {"camera": "DWARFIII", "date": "2026-01-27"}
+    datum = {"type": "MASTER FLAT", "camera": "DWARFIII", "date": "2026-01-27"}
     path = _build_flat_path(datum, "/dest", "test.xisf")
 
-    assert "FLAT" in path
+    assert "MASTER FLAT" in path
     assert "DWARFIII" in path
     assert "DATE_2026-01-27" in path
     assert "test.xisf" in path
@@ -595,7 +583,7 @@ def test_copy_calibration_frames_no_files():
             # Should complete without error
             copy_calibration_frames(source_dir=tmpdir, dest_dir=tmpdir)
 
-            # Should be called 3 times (BIAS, DARK, FLAT)
+            # Should be called 3 times (MASTER BIAS, MASTER DARK, MASTER FLAT)
             assert mock_get_metadata.call_count == 3
 
 
@@ -631,11 +619,11 @@ def test_copy_calibration_frames_with_files():
 
         def mock_get_metadata(*args, **kwargs):
             filter_type = kwargs.get("filters", {}).get("type", "")
-            if "BIAS" in filter_type:
+            if filter_type == "MASTER BIAS":
                 return bias_metadata
-            elif "DARK" in filter_type:
+            elif filter_type == "MASTER DARK":
                 return dark_metadata
-            elif "FLAT" in filter_type:
+            elif filter_type == "MASTER FLAT":
                 return flat_metadata
             return {}
 
@@ -665,7 +653,7 @@ def test_copy_calibration_frames_dryrun():
 
         def mock_get_metadata(*args, **kwargs):
             filter_type = kwargs.get("filters", {}).get("type", "")
-            if "BIAS" in filter_type:
+            if filter_type == "MASTER BIAS":
                 return bias_metadata
             return {}
 
@@ -690,7 +678,7 @@ def test_copy_calibration_frames_no_overwrite_with_collision():
         # Create an existing destination file
         dest_dir = os.path.join(tmpdir, "dest")
         os.makedirs(dest_dir, exist_ok=True)
-        bias_dir = os.path.join(dest_dir, "BIAS", "DWARFIII")
+        bias_dir = os.path.join(dest_dir, "MASTER BIAS", "DWARFIII")
         os.makedirs(bias_dir, exist_ok=True)
         existing_file = os.path.join(bias_dir, "masterBias_GAIN_100.xisf")
         with open(existing_file, "w") as f:
