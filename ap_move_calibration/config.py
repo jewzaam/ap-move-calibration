@@ -7,23 +7,25 @@ Defines metadata properties used for organizing and naming master calibration fr
 Uses normalized keyword names from ap-common normalization.
 """
 
+from typing import Final
+
 # Normalized keyword names (as returned by ap-common)
 # These match the normalized output from ap_common.normalize_headers()
-KEYWORD_TYPE = "type"  # From IMAGETYP
-KEYWORD_CAMERA = "camera"  # From INSTRUME
-KEYWORD_GAIN = "gain"  # From GAIN (lowercase)
-KEYWORD_OFFSET = "offset"  # From OFFSET (lowercase)
-KEYWORD_SETTEMP = "settemp"  # From SET-TEMP or SETTEMP
-KEYWORD_READOUTMODE = "readoutmode"  # From READOUTM
-KEYWORD_EXPOSURESECONDS = "exposureseconds"  # From EXPOSURE/EXPTIME/EXP
-KEYWORD_DATE = "date"  # From DATE-OBS
-KEYWORD_FILTER = "filter"  # From FILTER
-KEYWORD_FOCALLEN = "focallen"  # From FOCALLEN
-KEYWORD_OPTIC = "optic"  # From TELESCOP or other optic identifier
+KEYWORD_TYPE: Final[str] = "type"  # From IMAGETYP
+KEYWORD_CAMERA: Final[str] = "camera"  # From INSTRUME
+KEYWORD_GAIN: Final[str] = "gain"  # From GAIN (lowercase)
+KEYWORD_OFFSET: Final[str] = "offset"  # From OFFSET (lowercase)
+KEYWORD_SETTEMP: Final[str] = "settemp"  # From SET-TEMP or SETTEMP
+KEYWORD_READOUTMODE: Final[str] = "readoutmode"  # From READOUTM
+KEYWORD_EXPOSURESECONDS: Final[str] = "exposureseconds"  # From EXPOSURE/EXPTIME/EXP
+KEYWORD_DATE: Final[str] = "date"  # From DATE-OBS
+KEYWORD_FILTER: Final[str] = "filter"  # From FILTER
+KEYWORD_FOCALLEN: Final[str] = "focallen"  # From FOCALLEN
+KEYWORD_OPTIC: Final[str] = "optic"  # From TELESCOP or other optic identifier
 
 # Required metadata properties for each frame type
 # These are used to validate that files can be properly organized
-REQUIRED_PROPERTIES = {
+REQUIRED_PROPERTIES: dict[str, list[str]] = {
     "MASTER BIAS": [
         KEYWORD_CAMERA,  # Required for directory structure
     ],
@@ -38,7 +40,7 @@ REQUIRED_PROPERTIES = {
 
 # Metadata properties included in filenames for each frame type
 # Order matters - properties appear in filename in this order
-FILENAME_PROPERTIES = {
+FILENAME_PROPERTIES: dict[str, list[str]] = {
     "MASTER BIAS": [
         KEYWORD_GAIN,
         KEYWORD_OFFSET,
@@ -64,7 +66,7 @@ FILENAME_PROPERTIES = {
 
 # Optional metadata properties
 # These are used if present but do not cause failures if missing
-OPTIONAL_PROPERTIES = {
+OPTIONAL_PROPERTIES: dict[str, list[str]] = {
     "MASTER FLAT": [
         KEYWORD_OPTIC,  # Optional optic subdirectory for flats
     ],

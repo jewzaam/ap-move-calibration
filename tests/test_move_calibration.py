@@ -12,8 +12,7 @@ from ap_move_calibration.move_calibration import (
     build_destination_path,
     copy_calibration_frames,
     _build_filename,
-    _build_bias_path,
-    _build_dark_path,
+    _build_camera_path,
     _build_flat_path,
     _check_for_collisions,
 )
@@ -453,10 +452,10 @@ def test_build_filename_missing_optional():
     assert "OFFSET" not in filename
 
 
-def test_build_bias_path():
-    """Test BIAS path construction."""
+def test_build_camera_path_bias():
+    """Test BIAS path construction using _build_camera_path."""
     datum = {"type": "MASTER BIAS", "camera": "DWARFIII"}
-    path = _build_bias_path(datum, "/dest", "test.xisf")
+    path = _build_camera_path(datum, "/dest", "test.xisf")
 
     assert "/dest" in path or "\\dest" in path
     assert "MASTER BIAS" in path
@@ -464,10 +463,10 @@ def test_build_bias_path():
     assert "test.xisf" in path
 
 
-def test_build_dark_path():
-    """Test DARK path construction."""
+def test_build_camera_path_dark():
+    """Test DARK path construction using _build_camera_path."""
     datum = {"type": "MASTER DARK", "camera": "DWARFIII"}
-    path = _build_dark_path(datum, "/dest", "test.xisf")
+    path = _build_camera_path(datum, "/dest", "test.xisf")
 
     assert "/dest" in path or "\\dest" in path
     assert "MASTER DARK" in path
@@ -583,53 +582,37 @@ def test_copy_calibration_frames_no_files():
             # Should complete without error
             copy_calibration_frames(source_dir=tmpdir, dest_dir=tmpdir)
 
-            # Should be called 3 times (MASTER BIAS, MASTER DARK, MASTER FLAT)
-            assert mock_get_metadata.call_count == 3
+            # Should be called once (single scan for all types)
+            assert mock_get_metadata.call_count == 1
 
 
 def test_copy_calibration_frames_with_files():
     """Test copy_calibration_frames with mock files."""
     with tempfile.TemporaryDirectory() as tmpdir:
-        # Create mock metadata
-        bias_metadata = {
+        # Create mock metadata (single scan returns all types)
+        all_metadata = {
             "/src/bias.xisf": {
                 "type": "MASTER BIAS",
                 "camera": "DWARFIII",
                 "gain": 100,
-            }
-        }
-
-        dark_metadata = {
+            },
             "/src/dark.xisf": {
                 "type": "MASTER DARK",
                 "camera": "DWARFIII",
                 "exposureseconds": 300,
                 "gain": 100,
-            }
-        }
-
-        flat_metadata = {
+            },
             "/src/flat.xisf": {
                 "type": "MASTER FLAT",
                 "camera": "DWARFIII",
                 "date": "2026-01-27",
                 "filter": "L",
-            }
+            },
         }
-
-        def mock_get_metadata(*args, **kwargs):
-            filter_type = kwargs.get("filters", {}).get("type", "")
-            if filter_type == "MASTER BIAS":
-                return bias_metadata
-            elif filter_type == "MASTER DARK":
-                return dark_metadata
-            elif filter_type == "MASTER FLAT":
-                return flat_metadata
-            return {}
 
         with patch(
             "ap_move_calibration.move_calibration.get_filtered_metadata",
-            side_effect=mock_get_metadata,
+            return_value=all_metadata,
         ):
             with patch(
                 "ap_move_calibration.move_calibration.copy_file"
@@ -643,6 +626,7 @@ def test_copy_calibration_frames_with_files():
 def test_copy_calibration_frames_dryrun():
     """Test copy_calibration_frames in dry run mode."""
     with tempfile.TemporaryDirectory() as tmpdir:
+        # Single scan returns BIAS file only
         bias_metadata = {
             "/src/bias.xisf": {
                 "type": "MASTER BIAS",
@@ -651,15 +635,9 @@ def test_copy_calibration_frames_dryrun():
             }
         }
 
-        def mock_get_metadata(*args, **kwargs):
-            filter_type = kwargs.get("filters", {}).get("type", "")
-            if filter_type == "MASTER BIAS":
-                return bias_metadata
-            return {}
-
         with patch(
             "ap_move_calibration.move_calibration.get_filtered_metadata",
-            side_effect=mock_get_metadata,
+            return_value=bias_metadata,
         ):
             with patch(
                 "ap_move_calibration.move_calibration.copy_file"
@@ -745,7 +723,7 @@ def test_copy_calibration_frames_copy_failure():
         ):
             with patch(
                 "ap_move_calibration.move_calibration.copy_file",
-                side_effect=Exception("Copy failed"),
+                side_effect=OSError("Copy failed"),
             ):
                 # Should not raise, but log error
                 copy_calibration_frames(source_dir=tmpdir, dest_dir=tmpdir)

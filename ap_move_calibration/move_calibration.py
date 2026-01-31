@@ -47,24 +47,9 @@ def _build_filename(datum: dict, file_extension: str) -> str:
     return output_filename
 
 
-def _build_bias_path(datum: dict, dest_dir: str, filename: str) -> str:
+def _build_camera_path(datum: dict, dest_dir: str, filename: str) -> str:
     """
-    Builds destination path for MASTER BIAS frames.
-
-    Args:
-        datum: Metadata dictionary
-        dest_dir: Destination base directory
-        filename: Filename to use
-
-    Returns:
-        Full destination path
-    """
-    return os.path.join(dest_dir, datum["type"], datum[config.KEYWORD_CAMERA], filename)
-
-
-def _build_dark_path(datum: dict, dest_dir: str, filename: str) -> str:
-    """
-    Builds destination path for MASTER DARK frames.
+    Builds destination path for frames organized by camera only (BIAS and DARK).
 
     Args:
         datum: Metadata dictionary
@@ -145,10 +130,8 @@ def build_destination_path(
     filename = _build_filename(datum, file_extension)
 
     # Build path based on type
-    if frame_type == "MASTER BIAS":
-        dest_path = _build_bias_path(datum, dest_dir, filename)
-    elif frame_type == "MASTER DARK":
-        dest_path = _build_dark_path(datum, dest_dir, filename)
+    if frame_type in ("MASTER BIAS", "MASTER DARK"):
+        dest_path = _build_camera_path(datum, dest_dir, filename)
     elif frame_type == "MASTER FLAT":
         dest_path = _build_flat_path(datum, dest_dir, filename)
 
@@ -234,28 +217,33 @@ def copy_calibration_frames(
 
     logger.info(f"Scanning source directory: {source_dir}")
 
+    # Supported frame types
+    frame_types = ["MASTER BIAS", "MASTER DARK", "MASTER FLAT"]
+
     # Track statistics
-    stats = {
-        "MASTER BIAS": {"scanned": 0, "copied": 0, "skipped": 0},
-        "MASTER DARK": {"scanned": 0, "copied": 0, "skipped": 0},
-        "MASTER FLAT": {"scanned": 0, "copied": 0, "skipped": 0},
-    }
+    stats = {ft: {"scanned": 0, "copied": 0, "skipped": 0} for ft in frame_types}
+
+    # Scan once for all calibration files (instead of 3 separate scans)
+    all_metadata = get_filtered_metadata(
+        dirs=[source_dir],
+        patterns=[r".*\.xisf$", r".*\.fits$"],
+        recursive=True,
+        required_properties=[],
+        filters={},
+        debug=debug,
+        profileFromPath=False,
+    )
+
+    # Group metadata by frame type
+    metadata_by_type = {ft: {} for ft in frame_types}
+    for source_file, datum in all_metadata.items():
+        file_type = datum.get("type")
+        if file_type in frame_types:
+            metadata_by_type[file_type][source_file] = datum
 
     # Process each calibration type
-    for frame_type in ["MASTER BIAS", "MASTER DARK", "MASTER FLAT"]:
-        logger.debug(f"Scanning for {frame_type} frames...")
-
-        # Get all calibration frames of this type
-        metadata = get_filtered_metadata(
-            dirs=[source_dir],
-            patterns=[r".*\.xisf$", r".*\.fits$"],
-            recursive=True,
-            required_properties=[],
-            filters={"type": frame_type},
-            debug=debug,
-            profileFromPath=False,
-        )
-
+    for frame_type in frame_types:
+        metadata = metadata_by_type[frame_type]
         stats[frame_type]["scanned"] = len(metadata)
 
         logger.debug(f"Found {len(metadata)} {frame_type} frames")
@@ -300,7 +288,7 @@ def copy_calibration_frames(
                     dryrun=dryrun,
                 )
                 stats[frame_type]["copied"] += 1
-            except Exception as e:
+            except OSError as e:
                 logger.error(f"Failed to copy {source_file}: {e}")
                 stats[frame_type]["skipped"] += 1
 
@@ -355,11 +343,14 @@ def main():
             dryrun=args.dryrun,
             no_overwrite=args.no_overwrite,
         )
-    except Exception as e:
+    except (ValueError, FileExistsError, OSError) as e:
         logger.error(f"{e}")
         if args.debug:
             logger.exception("Full traceback:")
         sys.exit(1)
+    except KeyboardInterrupt:
+        logger.info("Operation cancelled by user")
+        sys.exit(130)
 
 
 if __name__ == "__main__":
