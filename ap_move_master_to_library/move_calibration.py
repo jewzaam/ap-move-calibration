@@ -24,6 +24,48 @@ from . import config
 logger = logging.getLogger(__name__)
 
 
+def _get_master_type_dir_name(type_value: str) -> str:
+    """
+    Maps PixInsight's actual type value to the directory name in the library.
+
+    PixInsight inconsistency: BIAS/DARK don't get "MASTER" prefix in IMAGETYP,
+    but FLAT does. We normalize to consistent "MASTER X" directory names.
+
+    Args:
+        type_value: Actual type from PixInsight (e.g., "BIAS", "DARK", "MASTER FLAT")
+
+    Returns:
+        Directory name (e.g., "MASTER BIAS", "MASTER DARK", "MASTER FLAT")
+    """
+    mapping = {
+        "BIAS": "MASTER BIAS",
+        "DARK": "MASTER DARK",
+        "MASTER FLAT": "MASTER FLAT",
+    }
+    return mapping.get(type_value, type_value)
+
+
+def _get_master_type_filename_prefix(type_value: str) -> str:
+    """
+    Maps PixInsight's actual type value to the filename prefix.
+
+    PixInsight requires "masterBias", "masterDark", "masterFlat" prefixes
+    to recognize calibration masters.
+
+    Args:
+        type_value: Actual type from PixInsight (e.g., "BIAS", "DARK", "MASTER FLAT")
+
+    Returns:
+        Filename prefix (e.g., "masterBias", "masterDark", "masterFlat")
+    """
+    mapping = {
+        "BIAS": "masterBias",
+        "DARK": "masterDark",
+        "MASTER FLAT": "masterFlat",
+    }
+    return mapping.get(type_value, camelCase(type_value))
+
+
 def _build_filename(datum: dict, file_extension: str) -> str:
     """
     Builds a filename from metadata properties.
@@ -35,7 +77,7 @@ def _build_filename(datum: dict, file_extension: str) -> str:
     Returns:
         Filename string
     """
-    output_filename = f"{camelCase(datum['type'])}"
+    output_filename = _get_master_type_filename_prefix(datum["type"])
 
     # Add metadata to filename
     for key in config.FILENAME_PROPERTIES[datum["type"]]:
@@ -61,8 +103,9 @@ def _build_bias_path(datum: dict, dest_dir: str, filename: str) -> str:
     Returns:
         Full destination path
     """
+    dir_name = _get_master_type_dir_name(datum["type"])
     return os.path.join(
-        dest_dir, datum["type"], datum[config.NORMALIZED_HEADER_CAMERA], filename
+        dest_dir, dir_name, datum[config.NORMALIZED_HEADER_CAMERA], filename
     )
 
 
@@ -78,8 +121,9 @@ def _build_dark_path(datum: dict, dest_dir: str, filename: str) -> str:
     Returns:
         Full destination path
     """
+    dir_name = _get_master_type_dir_name(datum["type"])
     return os.path.join(
-        dest_dir, datum["type"], datum[config.NORMALIZED_HEADER_CAMERA], filename
+        dest_dir, dir_name, datum[config.NORMALIZED_HEADER_CAMERA], filename
     )
 
 
@@ -96,8 +140,9 @@ def _build_flat_path(datum: dict, dest_dir: str, filename: str) -> str:
         Full destination path
     """
     date_subdir = f"DATE_{datum[config.NORMALIZED_HEADER_DATE]}"
+    dir_name = _get_master_type_dir_name(datum["type"])
 
-    dest_path_parts = [dest_dir, datum["type"], datum[config.NORMALIZED_HEADER_CAMERA]]
+    dest_path_parts = [dest_dir, dir_name, datum[config.NORMALIZED_HEADER_CAMERA]]
     if (
         config.NORMALIZED_HEADER_OPTIC in datum
         and datum[config.NORMALIZED_HEADER_OPTIC] is not None
