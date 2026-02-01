@@ -16,13 +16,61 @@ from ap_move_master_to_library.move_calibration import (
     _build_dark_path,
     _build_flat_path,
     _check_for_collisions,
+    _get_master_type_dir_name,
+    _get_master_type_filename_prefix,
 )
+
+# Tests for PixInsight type mapping functions
+
+
+def test_get_master_type_dir_name_bias():
+    """Test directory name mapping for BIAS."""
+    assert _get_master_type_dir_name("BIAS") == "MASTER BIAS"
+
+
+def test_get_master_type_dir_name_dark():
+    """Test directory name mapping for DARK."""
+    assert _get_master_type_dir_name("DARK") == "MASTER DARK"
+
+
+def test_get_master_type_dir_name_flat():
+    """Test directory name mapping for MASTER FLAT."""
+    assert _get_master_type_dir_name("MASTER FLAT") == "MASTER FLAT"
+
+
+def test_get_master_type_dir_name_unknown():
+    """Test directory name mapping for unknown type returns input."""
+    assert _get_master_type_dir_name("UNKNOWN") == "UNKNOWN"
+
+
+def test_get_master_type_filename_prefix_bias():
+    """Test filename prefix mapping for BIAS."""
+    assert _get_master_type_filename_prefix("BIAS") == "masterBias"
+
+
+def test_get_master_type_filename_prefix_dark():
+    """Test filename prefix mapping for DARK."""
+    assert _get_master_type_filename_prefix("DARK") == "masterDark"
+
+
+def test_get_master_type_filename_prefix_flat():
+    """Test filename prefix mapping for MASTER FLAT."""
+    assert _get_master_type_filename_prefix("MASTER FLAT") == "masterFlat"
+
+
+def test_get_master_type_filename_prefix_unknown():
+    """Test filename prefix mapping for unknown type uses camelCase."""
+    # Should fall back to camelCase for unknown types
+    assert _get_master_type_filename_prefix("UNKNOWN TYPE") == "unknownType"
+
+
+# Tests for destination path building
 
 
 def test_build_destination_path_bias():
     """Test building destination path for BIAS frames."""
     datum = {
-        "type": "MASTER BIAS",
+        "type": "BIAS",
         "camera": "DWARFIII",
         "gain": 100,
         "offset": 10,
@@ -48,7 +96,7 @@ def test_build_destination_path_bias():
 def test_build_destination_path_dark():
     """Test building destination path for DARK frames."""
     datum = {
-        "type": "MASTER DARK",
+        "type": "DARK",
         "camera": "DWARFIII",
         "exposureseconds": 300,
         "gain": 100,
@@ -141,7 +189,7 @@ def test_build_destination_path_flat_no_optic():
 def test_build_destination_path_missing_camera():
     """Test that missing camera raises ValueError."""
     datum = {
-        "type": "MASTER BIAS",
+        "type": "BIAS",
         "gain": 100,
     }
 
@@ -187,7 +235,7 @@ def test_build_destination_path_unknown_type():
 def test_build_destination_path_dark_exposure_first():
     """Test that DARK frames have exposure time first in filename."""
     datum = {
-        "type": "MASTER DARK",
+        "type": "DARK",
         "camera": "DWARFIII",
         "exposureseconds": 300,
         "gain": 100,
@@ -215,7 +263,7 @@ def test_build_destination_path_missing_optional_properties():
     """Test that missing optional properties are skipped in filename."""
     # BIAS with only required camera and minimal properties
     datum = {
-        "type": "MASTER BIAS",
+        "type": "BIAS",
         "camera": "DWARFIII",
         "gain": 100,
         # No offset, settemp, readoutmode
@@ -237,7 +285,7 @@ def test_build_destination_path_missing_optional_properties():
 def test_build_destination_path_file_extension_preservation():
     """Test that file extensions are preserved correctly."""
     datum = {
-        "type": "MASTER BIAS",
+        "type": "BIAS",
         "camera": "DWARFIII",
         "gain": 100,
     }
@@ -303,7 +351,7 @@ def test_build_destination_path_directory_structure():
     """Test that directory structure is correct for each frame type."""
     # BIAS: dest_dir/MASTER BIAS/camera/filename
     bias_datum = {
-        "type": "MASTER BIAS",
+        "type": "BIAS",
         "camera": "DWARFIII",
         "gain": 100,
     }
@@ -324,7 +372,7 @@ def test_build_destination_path_directory_structure():
 
     # DARK: dest_dir/MASTER DARK/camera/filename
     dark_datum = {
-        "type": "MASTER DARK",
+        "type": "DARK",
         "camera": "DWARFIII",
         "exposureseconds": 300,
     }
@@ -393,7 +441,7 @@ def test_build_destination_path_flat_with_optic_structure():
 def test_build_filename_bias():
     """Test filename building for BIAS frames."""
     datum = {
-        "type": "MASTER BIAS",
+        "type": "BIAS",
         "gain": 100,
         "offset": 10,
         "settemp": -10,
@@ -410,7 +458,7 @@ def test_build_filename_bias():
 def test_build_filename_dark():
     """Test filename building for DARK frames."""
     datum = {
-        "type": "MASTER DARK",
+        "type": "DARK",
         "exposureseconds": 300,
         "gain": 100,
     }
@@ -442,7 +490,7 @@ def test_build_filename_flat():
 def test_build_filename_missing_optional():
     """Test filename building with missing optional properties."""
     datum = {
-        "type": "MASTER BIAS",
+        "type": "BIAS",
         "gain": 100,
         # offset is missing
     }
@@ -593,7 +641,7 @@ def test_copy_calibration_frames_with_files():
         # Create mock metadata
         bias_metadata = {
             "/src/bias.xisf": {
-                "type": "MASTER BIAS",
+                "type": "BIAS",
                 "camera": "DWARFIII",
                 "gain": 100,
             }
@@ -601,7 +649,7 @@ def test_copy_calibration_frames_with_files():
 
         dark_metadata = {
             "/src/dark.xisf": {
-                "type": "MASTER DARK",
+                "type": "DARK",
                 "camera": "DWARFIII",
                 "exposureseconds": 300,
                 "gain": 100,
@@ -619,9 +667,9 @@ def test_copy_calibration_frames_with_files():
 
         def mock_get_metadata(*args, **kwargs):
             filter_type = kwargs.get("filters", {}).get("type", "")
-            if filter_type == "MASTER BIAS":
+            if filter_type == "BIAS":
                 return bias_metadata
-            elif filter_type == "MASTER DARK":
+            elif filter_type == "DARK":
                 return dark_metadata
             elif filter_type == "MASTER FLAT":
                 return flat_metadata
@@ -645,7 +693,7 @@ def test_copy_calibration_frames_dryrun():
     with tempfile.TemporaryDirectory() as tmpdir:
         bias_metadata = {
             "/src/bias.xisf": {
-                "type": "MASTER BIAS",
+                "type": "BIAS",
                 "camera": "DWARFIII",
                 "gain": 100,
             }
@@ -653,7 +701,7 @@ def test_copy_calibration_frames_dryrun():
 
         def mock_get_metadata(*args, **kwargs):
             filter_type = kwargs.get("filters", {}).get("type", "")
-            if filter_type == "MASTER BIAS":
+            if filter_type == "BIAS":
                 return bias_metadata
             return {}
 
@@ -686,7 +734,7 @@ def test_copy_calibration_frames_no_overwrite_with_collision():
 
         bias_metadata = {
             "/src/bias.xisf": {
-                "type": "MASTER BIAS",
+                "type": "BIAS",
                 "camera": "DWARFIII",
                 "gain": 100,
             }
@@ -708,7 +756,7 @@ def test_copy_calibration_frames_missing_metadata():
         # BIAS with missing camera (required)
         bias_metadata = {
             "/src/bias.xisf": {
-                "type": "MASTER BIAS",
+                "type": "BIAS",
                 "gain": 100,
                 # camera is missing
             }
@@ -733,7 +781,7 @@ def test_copy_calibration_frames_copy_failure():
     with tempfile.TemporaryDirectory() as tmpdir:
         bias_metadata = {
             "/src/bias.xisf": {
-                "type": "MASTER BIAS",
+                "type": "BIAS",
                 "camera": "DWARFIII",
                 "gain": 100,
             }
